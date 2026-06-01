@@ -9,100 +9,364 @@
 <title>RBT On-Call Manager</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
-  header { background: #1a1a2e; color: white; padding: 20px 30px; display: flex; align-items: center; gap: 12px; }
-  header h1 { font-size: 1.4rem; font-weight: 600; }
-  header span { font-size: 1.6rem; }
-  .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
-  .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-  .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #1a1a2e; border-bottom: 2px solid #f0f2f5; padding-bottom: 10px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a1a; }
+
+  /* ── Nav ── */
+  nav {
+    background: #1a2e14;
+    color: white;
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: white;
+    flex-shrink: 0;
+  }
+  .nav-logo svg { width: 34px; height: 34px; }
+  .nav-logo-text { line-height: 1.1; }
+  .nav-logo-text .brand { font-size: 1rem; font-weight: 800; letter-spacing: 0.04em; }
+  .nav-logo-text .sub   { font-size: 0.6rem; font-weight: 500; letter-spacing: 0.08em; opacity: 0.85; }
+  .nav-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.2); }
+  .nav-links { display: flex; gap: 2px; flex: 1; }
+  .nav-links a {
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .nav-links a:hover { color: white; background: rgba(255,255,255,0.1); }
+  .nav-links a.active { color: white; background: rgba(255,255,255,0.15); }
+
+  /* ── Page ── */
+  .page { max-width: 960px; margin: 0 auto; padding: 32px 24px 100px; }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .page-title { font-size: 1.6rem; font-weight: 700; color: #2d6a27; }
+
+  .page-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  /* ── Buttons ── */
+  .btn-outline {
+    background: white;
+    color: #1a2e14;
+    border: 1.5px solid #1a2e14;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-outline:hover { background: #f0f7ee; }
+  .btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-solid {
+    background: #2d6a27;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-solid:hover { background: #245620; }
+  .btn-solid:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-danger-sm {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-danger-sm:hover { background: #fecaca; }
+
+  .btn-sm {
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .btn-sm.gray   { background:#f3f4f6; color:#374151; border-color:#d1d5db; }
+  .btn-sm.gray:hover { background:#e5e7eb; }
+  .btn-sm.green  { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+  .btn-sm.green:hover { background:#dcfce7; }
+  .btn-sm.orange { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+  .btn-sm.orange:hover { background:#ffedd5; }
+  .btn-sm.blue   { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+  .btn-sm.blue:hover { background:#dbeafe; }
+  .btn-sm.sent   { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
+  .btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Cards ── */
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a2e14;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f2f5;
+  }
+
+  /* ── Token card ── */
+  .token-card {
+    background: #fafff8;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .token-label { font-size: 0.85rem; color: #166534; font-weight: 500; white-space: nowrap; }
+  .token-card input {
+    flex: 1;
+    min-width: 200px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .token-card input:focus { border-color: #2d6a27; }
+  .token-status { font-size: 0.8rem; color: #059669; width: 100%; margin-top: 2px; }
+
+  /* ── Table ── */
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; padding: 10px 12px; font-size: 0.8rem; text-transform: uppercase; color: #888; background: #f8f9fa; }
-  td { padding: 10px 12px; border-bottom: 1px solid #f0f2f5; font-size: 0.95rem; vertical-align: middle; }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    background: #f9fafb;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  td { padding: 11px 12px; border-bottom: 1px solid #f9fafb; font-size: 0.9rem; vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
-  input[type=text], select { border: 1px solid #ddd; border-radius: 6px; padding: 7px 10px; font-size: 0.9rem; width: 100%; outline: none; transition: border 0.2s; }
-  input[type=text]:focus, select:focus { border-color: #4f46e5; }
+  tr:hover td { background: #fafffe; }
+
+  input[type=text], input[type=password] {
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    padding: 7px 10px;
+    font-size: 0.875rem;
+    width: 100%;
+    outline: none;
+    transition: border 0.15s;
+  }
+  input[type=text]:focus, input[type=password]:focus { border-color: #2d6a27; box-shadow: 0 0 0 2px rgba(45,106,39,0.1); }
+
+  /* ── Toggle ── */
   .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
   .toggle input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 22px; transition: .3s; }
-  .slider:before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; }
-  input:checked + .slider { background: #4f46e5; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: #d1d5db; border-radius: 22px; transition: .25s; }
+  .slider:before { content:""; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:white; border-radius:50%; transition:.25s; }
+  input:checked + .slider { background: #2d6a27; }
   input:checked + .slider:before { transform: translateX(18px); }
-  .btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; }
-  .btn-primary { background: #4f46e5; color: white; }
-  .btn-primary:hover { background: #4338ca; }
-  .btn-danger { background: #fee2e2; color: #dc2626; }
-  .btn-danger:hover { background: #fecaca; }
-  .btn-success { background: #d1fae5; color: #059669; }
-  .btn-success:hover { background: #a7f3d0; }
-  .btn-add { background: #f0f2f5; color: #4f46e5; border: 2px dashed #c7d2fe; width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; font-size: 0.95rem; }
-  .btn-add:hover { background: #eef2ff; }
-  .actions { display: flex; gap: 8px; }
-  .token-section { background: #fff8e1; border: 1px solid #ffd54f; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; font-size: 0.9rem; }
-  .token-section input { margin-top: 8px; }
-  .save-bar { position: sticky; bottom: 0; background: white; border-top: 1px solid #e5e7eb; padding: 16px 20px; display: flex; justify-content: flex-end; gap: 12px; align-items: center; }
-  .status { font-size: 0.9rem; color: #6b7280; }
-  .status.ok { color: #059669; }
-  .status.err { color: #dc2626; }
-  .ics-link { font-size: 0.8rem; color: #4f46e5; text-decoration: none; }
-  .ics-link:hover { text-decoration: underline; }
-  .ics-url-row td { background: #f8f7ff; padding: 6px 12px 10px 12px; }
-  .ics-url-box { display: flex; align-items: center; gap: 6px; }
-  .ics-url-box input { background: white; border: 1px solid #c7d2fe; border-radius: 6px; padding: 5px 8px; font-size: 0.78rem; color: #4338ca; font-family: monospace; flex: 1; cursor: pointer; }
-  .btn-copy { padding: 4px 10px; font-size: 0.78rem; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 6px; cursor: pointer; white-space: nowrap; }
-  .btn-copy:hover { background: #e0e7ff; }
-  .btn-copy.copied { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
-  .btn-test { padding: 4px 10px; font-size: 0.78rem; background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; border-radius: 6px; cursor: pointer; white-space: nowrap; }
-  .btn-test:hover { background: #ffedd5; }
-  .btn-test.sending { opacity: 0.6; cursor: not-allowed; }
-  .btn-test.sent { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
-  .badge-on { background: #d1fae5; color: #059669; }
-  .badge-off { background: #f3f4f6; color: #9ca3af; }
-  .btn-view { padding: 4px 10px; font-size: 0.78rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; white-space: nowrap; }
-  .btn-view:hover { background: #dbeafe; }
-  /* Modal */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+
+  /* ── Add employee btn ── */
+  .btn-add-emp {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-add-emp:hover { background: #f0fdf4; border-color: #86efac; color: #166534; }
+
+  /* ── ICS row ── */
+  .ics-row td { background: #f9fafb; padding: 8px 12px 10px; }
+  .ics-box { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .ics-box label { font-size: 0.75rem; color: #6b7280; white-space: nowrap; }
+  .ics-box input[type=text] {
+    min-width: 0;
+    flex: 1;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: #1d4ed8;
+    background: white;
+    border-color: #e0e7ff;
+    cursor: pointer;
+    padding: 5px 8px;
+  }
+
+  /* ── Office section ── */
+  .office-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .office-row .field { flex: 1; min-width: 200px; }
+  .office-row label.field-label { font-size: 0.8rem; color: #6b7280; display: block; margin-bottom: 4px; }
+
+  /* ── Status bar ── */
+  .save-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 14px 32px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    align-items: center;
+    z-index: 50;
+  }
+  .status-msg { font-size: 0.875rem; color: #6b7280; margin-right: auto; }
+  .status-msg.ok  { color: #059669; }
+  .status-msg.err { color: #dc2626; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
   .modal-overlay.open { display: flex; }
-  .modal { background: white; border-radius: 16px; width: 100%; max-width: 520px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.2); margin: 20px; }
-  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; }
-  .modal-header h3 { font-size: 1.1rem; font-weight: 600; color: #1a1a2e; }
-  .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #888; line-height: 1; }
-  .modal-close:hover { color: #333; }
-  .modal-body { overflow-y: auto; padding: 16px 24px 24px; flex: 1; }
-  .cal-section-title { font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600; margin: 16px 0 8px; letter-spacing: 0.05em; }
+  .modal {
+    background: white;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+    margin: 20px;
+  }
+  .modal-header {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid #f0f2f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h3 { font-size: 1rem; font-weight: 600; color: #2d6a27; }
+  .modal-close { background:none; border:none; font-size:1.3rem; cursor:pointer; color:#9ca3af; line-height:1; }
+  .modal-close:hover { color: #374151; }
+  .modal-body { overflow-y: auto; padding: 16px 22px 22px; flex: 1; }
+  .cal-section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: #9ca3af;
+    margin: 14px 0 8px;
+  }
   .cal-section-title:first-child { margin-top: 0; }
-  .cal-event { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; }
-  .cal-event.oncall { background: #eff6ff; border-left: 3px solid #2563eb; }
-  .cal-event.vacation { background: #f0fdf4; border-left: 3px solid #16a34a; }
-  .cal-event.today { background: #fefce8; border-left: 3px solid #ca8a04; }
-  .cal-date { font-weight: 600; font-size: 0.9rem; min-width: 110px; }
-  .cal-label { font-size: 0.85rem; color: #555; }
-  .cal-today-badge { font-size: 0.7rem; background: #fef08a; color: #854d0e; padding: 1px 6px; border-radius: 99px; font-weight: 600; margin-left: 6px; }
-  .modal-loading { text-align: center; padding: 40px; color: #888; }
+  .cal-event { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; margin-bottom:5px; }
+  .cal-event.oncall  { background:#f0fdf4; border-left:3px solid #2d6a27; }
+  .cal-event.vacation{ background:#eff6ff; border-left:3px solid #2563eb; }
+  .cal-event.today   { background:#fefce8; border-left:3px solid #d97706; }
+  .cal-date { font-weight:600; font-size:0.875rem; min-width:130px; color:#1a2e14; }
+  .cal-label { font-size:0.82rem; color:#6b7280; }
+  .cal-today-badge {
+    font-size:0.65rem; background:#fde047; color:#854d0e;
+    padding:1px 6px; border-radius:99px; font-weight:700; margin-left:6px;
+  }
+  .modal-loading { text-align:center; padding:40px; color:#9ca3af; }
+
+  /* ── Info box ── */
+  .info-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.875rem;
+    color: #166534;
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <span>🏗️</span>
-  <h1>RBT On-Call Manager</h1>
-</header>
-
-<div class="container">
-
-  <div class="token-section" id="token-section">
-    🔑 <strong>GitHub Token required to save changes</strong> — enter your PAT with <code>repo</code> + <code>workflow</code> scopes:
-    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-      <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" style="flex:1;" />
-      <button class="btn btn-primary" onclick="saveToken()" style="white-space:nowrap;">Remember Me</button>
-      <button class="btn" onclick="clearToken()" style="background:#fee2e2;color:#dc2626;white-space:nowrap;">Forget</button>
+<!-- Nav -->
+<nav>
+  <a class="nav-logo" href="#">
+    <!-- Diamond logo -->
+    <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="28" height="28" rx="4" stroke="white" stroke-width="2.5" fill="none"/>
+      <polygon points="17,6 28,17 17,28 6,17" fill="white"/>
+      <polygon points="17,10 24,17 17,24 10,17" fill="#1a2e14"/>
+    </svg>
+    <div class="nav-logo-text">
+      <div class="brand">RBT</div>
+      <div class="sub">ELECTRICAL &amp; AUTOMATION</div>
     </div>
-    <div id="token-status" style="font-size:0.8rem;margin-top:6px;color:#888;"></div>
+  </a>
+  <div class="nav-divider"></div>
+  <div class="nav-links">
+    <a href="#" class="active">On-Call Manager</a>
+  </div>
+</nav>
+
+<!-- Page -->
+<div class="page">
+
+  <!-- Token -->
+  <div class="token-card">
+    <span class="token-label">🔑 GitHub Token</span>
+    <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" />
+    <button class="btn-sm green" onclick="saveToken()">Remember</button>
+    <button class="btn-sm gray"  onclick="clearToken()">Forget</button>
+    <div class="token-status" id="token-status"></div>
   </div>
 
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="page-title">On-Call Manager</h1>
+    <div class="page-actions">
+      <button class="btn-outline" id="refresh-btn" onclick="refreshCalendars()">🔄 Refresh Calendars</button>
+      <button class="btn-solid"   onclick="saveConfig()">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- Employees -->
   <div class="card">
-    <h2>👥 Employees</h2>
+    <div class="card-title">👥 Employees</div>
     <table>
       <thead>
         <tr>
@@ -114,29 +378,29 @@
       </thead>
       <tbody id="emp-table"></tbody>
     </table>
-    <button class="btn btn-add" onclick="addEmployee()">+ Add Employee</button>
+    <button class="btn-add-emp" onclick="addEmployee()">+ Add Employee</button>
   </div>
 
+  <!-- Office -->
   <div class="card">
-    <h2>🏢 Office Notification</h2>
-    <p style="font-size:0.9rem;color:#666;margin-bottom:16px;">This number receives a daily text listing everyone who is on call.</p>
-    <table>
-      <thead><tr><th>Phone</th><th>Active</th><th></th></tr></thead>
-      <tbody>
-        <tr>
-          <td><input type="text" id="office-phone" placeholder="+15195551234" /></td>
-          <td>
-            <label class="toggle">
-              <input type="checkbox" id="office-active" />
-              <span class="slider"></span>
-            </label>
-          </td>
-          <td>
-            <button class="btn-test" id="office-test-btn" onclick="sendOfficeTest()">💬 Test Text</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="card-title">🏢 Office Notification</div>
+    <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">Receives a daily text listing everyone on call.</p>
+    <div class="office-row">
+      <div class="field">
+        <label class="field-label">Phone Number</label>
+        <input type="text" id="office-phone" placeholder="+15195551234" />
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding-top:20px;">
+        <label class="toggle">
+          <input type="checkbox" id="office-active" />
+          <span class="slider"></span>
+        </label>
+        <span style="font-size:0.85rem;color:#374151;">Active</span>
+      </div>
+      <div style="padding-top:20px;">
+        <button class="btn-sm orange" id="office-test-btn" onclick="sendOfficeTest()">💬 Test Text</button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -149,41 +413,34 @@
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body" id="modal-body">
-      <div class="modal-loading">Loading...</div>
+      <div class="modal-loading">Loading…</div>
     </div>
   </div>
 </div>
 
+<!-- Save bar -->
 <div class="save-bar">
-  <span class="status" id="save-status"></span>
-  <button class="btn" id="refresh-btn" onclick="refreshCalendars()" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;">🔄 Refresh Calendars</button>
-  <button class="btn btn-primary" onclick="saveConfig()">💾 Save Changes</button>
+  <span class="status-msg" id="save-status"></span>
+  <button class="btn-outline" id="refresh-btn2" onclick="refreshCalendars()">🔄 Refresh Calendars</button>
+  <button class="btn-solid"   onclick="saveConfig()">Save Changes</button>
 </div>
 
 <script>
-const REPO = "jsibbickrbt/RBT-On-Call";
+const REPO     = "jsibbickrbt/RBT-On-Call";
 const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call";
 
-const CARRIERS = ["bell","rogers","telus","fido","freedom","virgin","koodo","chatr","public"];
-
 let config = {};
-
-function carrierSelect(selected, id) {
-  return `<select id="${id}">${CARRIERS.map(c =>
-    `<option value="${c}" ${c === selected ? "selected" : ""}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
-  ).join("")}</select>`;
-}
 
 function renderEmployees() {
   const tbody = document.getElementById("emp-table");
   tbody.innerHTML = "";
   (config.employees || []).forEach((emp, i) => {
-    const icsUrl  = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
-    const webcal  = icsUrl.replace("https://", "webcal://");
+    const icsUrl = `${BASE_URL}/${emp.name.toLowerCase()}_schedule.ics`;
+    const webcal = icsUrl.replace("https://", "webcal://");
     tbody.innerHTML += `
       <tr id="emp-row-${i}">
-        <td><input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" /></td>
-        <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="+12265551234" /></td>
+        <td><input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" style="max-width:160px;" /></td>
+        <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="+12265551234" style="max-width:180px;" /></td>
         <td>
           <label class="toggle">
             <input type="checkbox" id="emp-active-${i}" ${emp.active !== false ? "checked" : ""} />
@@ -191,19 +448,19 @@ function renderEmployees() {
           </label>
         </td>
         <td>
-          <button class="btn btn-danger" onclick="removeEmployee(${i})">✕</button>
+          <button class="btn-danger-sm" onclick="removeEmployee(${i})">✕ Remove</button>
         </td>
       </tr>
-      <tr class="ics-url-row" id="ics-row-${i}">
-        <td colspan="5">
-          <div class="ics-url-box">
-            <span style="font-size:0.8rem;color:#888;white-space:nowrap;">📅 ICS:</span>
+      <tr class="ics-row" id="ics-row-${i}">
+        <td colspan="4">
+          <div class="ics-box">
+            <label>📅 ICS:</label>
             <input type="text" id="ics-url-${i}" value="${icsUrl}" readonly onclick="this.select()" />
-            <button class="btn-copy" onclick="copyIcs(${i})">Copy</button>
-            <a class="btn-copy" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">📲 Subscribe</a>
-            <button class="btn-test" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">💬 Test Text</button>
-            <button class="btn-test" id="cal-btn-${i}" onclick="sendCalendarLink(${i}, '${emp.name}')" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;">📅 Send Link</button>
-            <button class="btn-view" onclick="viewCalendar('${emp.name}')">📆 View</button>
+            <button class="btn-sm gray"   onclick="copyIcs(${i})" id="copy-btn-${i}">Copy</button>
+            <a class="btn-sm blue" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">📲 Subscribe</a>
+            <button class="btn-sm orange" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">💬 Test</button>
+            <button class="btn-sm green"  id="cal-btn-${i}"  onclick="sendCalendarLink(${i}, '${emp.name}')">📅 Send Link</button>
+            <button class="btn-sm blue"   onclick="viewCalendar('${emp.name}')">📆 View</button>
           </div>
         </td>
       </tr>`;
@@ -211,13 +468,13 @@ function renderEmployees() {
 }
 
 function renderOffice() {
-  const office = config.office || {};
-  document.getElementById("office-phone").value   = office.phone || "";
-  document.getElementById("office-active").checked = office.active || false;
+  const o = config.office || {};
+  document.getElementById("office-phone").value   = o.phone  || "";
+  document.getElementById("office-active").checked = o.active || false;
 }
 
 function addEmployee() {
-  config.employees.push({ name: "New Employee", phone: "", carrier: "bell", active: true });
+  config.employees.push({ name: "New Employee", phone: "", active: true });
   renderEmployees();
 }
 
@@ -244,85 +501,68 @@ function collectConfig() {
   };
 }
 
+function setStatus(msg, type = "") {
+  const el = document.getElementById("save-status");
+  el.textContent = msg;
+  el.className = "status-msg" + (type ? " " + type : "");
+}
+
 async function refreshCalendars() {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) { alert("Please enter your GitHub token first."); return; }
-  const btn = document.getElementById("refresh-btn");
-  const status = document.getElementById("save-status");
-  btn.textContent = "⏳ Refreshing…";
-  btn.disabled = true;
-  status.textContent = "";
-  status.className = "status";
+  ["refresh-btn","refresh-btn2"].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) { b.textContent = "⏳ Refreshing…"; b.disabled = true; }
+  });
+  setStatus("");
   try {
     const resp = await fetch(
       `https://api.github.com/repos/${REPO}/actions/workflows/update_calendar.yml/dispatches`,
-      {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Accept": "application/vnd.github+json" },
-        body: JSON.stringify({ ref: "main", inputs: {} })
-      }
+      { method:"POST", headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json","Accept":"application/vnd.github+json"}, body:JSON.stringify({ref:"main",inputs:{}}) }
     );
     if (resp.status === 204) {
-      btn.textContent = "✅ Refresh Started";
-      status.textContent = "Calendar refresh triggered — reloading in 3s…";
-      status.className = "status ok";
+      setStatus("✅ Calendar refresh triggered — reloading in 3s…", "ok");
       setTimeout(() => location.reload(), 3000);
     } else {
       const err = await resp.json().catch(() => ({}));
       throw new Error(err.message || `HTTP ${resp.status}`);
     }
-  } catch (e) {
-    btn.textContent = "🔄 Refresh Calendars";
-    btn.disabled = false;
-    status.textContent = "Error: " + e.message;
-    status.className = "status err";
+  } catch(e) {
+    ["refresh-btn","refresh-btn2"].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) { b.textContent = "🔄 Refresh Calendars"; b.disabled = false; }
+    });
+    setStatus("❌ " + e.message, "err");
   }
 }
 
 async function saveConfig() {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) { alert("Please enter your GitHub token first."); return; }
-
-  const status = document.getElementById("save-status");
-  status.className = "status";
-  status.textContent = "Saving...";
-
+  setStatus("Saving…");
   const newConfig = collectConfig();
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
-
+  const content   = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
   try {
-    // Get current SHA of config.json (no-store prevents stale cached SHA)
-    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json?_=${Date.now()}`, {
-      cache: "no-store",
-      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json" }
-    });
+    const r    = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json?_=${Date.now()}`, { cache:"no-store", headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json"} });
     const data = await r.json();
-    const sha = data.sha;
-
-    // Push updated config
-    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
-      method: "PUT",
-      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Update config via web UI", content, sha })
+    const res  = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
+      method:"PUT",
+      headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({message:"Update config via web UI",content,sha:data.sha})
     });
-
     if (res.ok) {
-      status.className = "status ok";
-      status.textContent = "✅ Saved! Reloading in 3s…";
+      setStatus("✅ Saved! Reloading in 3s…", "ok");
       config = newConfig;
       setTimeout(() => location.reload(), 3000);
     } else {
       const err = await res.json();
-      status.className = "status err";
-      status.textContent = "❌ Error: " + (err.message || "Unknown error");
+      setStatus("❌ " + (err.message || "Unknown error"), "err");
     }
-  } catch (e) {
-    status.className = "status err";
-    status.textContent = "❌ " + e.message;
+  } catch(e) {
+    setStatus("❌ " + e.message, "err");
   }
 }
 
-// Token memory
 function saveToken() {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) return;
@@ -340,238 +580,156 @@ function loadToken() {
   const saved = localStorage.getItem("rbt_gh_token");
   if (saved) {
     document.getElementById("gh-token").value = saved;
-    document.getElementById("token-status").textContent = "✅ Token loaded from browser storage.";
+    document.getElementById("token-status").textContent = "✅ Token loaded.";
   }
 }
 
-// Load config from GitHub on page load
 async function loadConfig() {
   try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
-      headers: { Accept: "application/vnd.github+json" }
-    });
+    const r    = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`);
     const data = await r.json();
-    config = JSON.parse(atob(data.content.replace(/\n/g, "")));
+    config = JSON.parse(atob(data.content.replace(/\n/g,"")));
     renderEmployees();
     renderOffice();
-  } catch (e) {
-    document.getElementById("save-status").textContent = "Failed to load config: " + e.message;
-  }
-}
-
-async function sendCalendarLink(i, name) {
-  const token = document.getElementById("gh-token").value.trim();
-  if (!token) { alert("Please enter your GitHub token first."); return; }
-  if (!confirm(`Send calendar subscription link to ${name} via SMS?`)) return;
-
-  const btn = document.getElementById(`cal-btn-${i}`);
-  btn.textContent = "Sending...";
-  btn.disabled = true;
-
-  try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
-      method: "POST",
-      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: "main", inputs: { test_user: "", send_calendar: name } })
-    });
-    if (res.ok || res.status === 204) {
-      btn.textContent = "✅ Sent!";
-      btn.classList.add("sent");
-      setTimeout(() => { btn.textContent = "📅 Send Link"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
-    } else {
-      const err = await res.json();
-      alert("Error: " + (err.message || res.status));
-      btn.textContent = "📅 Send Link";
-      btn.disabled = false;
-    }
   } catch(e) {
-    alert("Error: " + e.message);
-    btn.textContent = "📅 Send Link";
-    btn.disabled = false;
-  }
-}
-
-async function sendOfficeTest() {
-  const token = document.getElementById("gh-token").value.trim();
-  if (!token) { alert("Please enter your GitHub token first."); return; }
-
-  const btn = document.getElementById("office-test-btn");
-  btn.textContent = "Sending...";
-  btn.classList.add("sending");
-  btn.disabled = true;
-
-  try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
-      method: "POST",
-      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: "main", inputs: { test_user: "office" } })
-    });
-    if (res.ok || res.status === 204) {
-      btn.textContent = "✅ Sent!";
-      btn.classList.remove("sending");
-      btn.classList.add("sent");
-      setTimeout(() => { btn.textContent = "💬 Test Text"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
-    } else {
-      const err = await res.json();
-      alert("Error: " + (err.message || res.status));
-      btn.textContent = "💬 Test Text";
-      btn.classList.remove("sending");
-      btn.disabled = false;
-    }
-  } catch(e) {
-    alert("Error: " + e.message);
-    btn.textContent = "💬 Test Text";
-    btn.classList.remove("sending");
-    btn.disabled = false;
+    setStatus("Failed to load config: " + e.message, "err");
   }
 }
 
 async function sendTestText(i, name) {
   const token = document.getElementById("gh-token").value.trim();
   if (!token) { alert("Please enter your GitHub token first."); return; }
-
   const btn = document.getElementById(`test-btn-${i}`);
-  btn.textContent = "Sending...";
-  btn.classList.add("sending");
-  btn.disabled = true;
-
+  btn.textContent = "Sending…"; btn.disabled = true;
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
-      method: "POST",
-      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: "main", inputs: { test_user: name } })
+      method:"POST", headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({ref:"main",inputs:{test_user:name}})
     });
-    if (res.ok || res.status === 204) {
-      btn.textContent = "✅ Sent!";
-      btn.classList.remove("sending");
-      btn.classList.add("sent");
-      setTimeout(() => { btn.textContent = "💬 Test Text"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
+    if (res.ok || res.status===204) {
+      btn.textContent="✅ Sent!"; btn.classList.add("sent");
+      setTimeout(()=>{ btn.textContent="💬 Test"; btn.classList.remove("sent"); btn.disabled=false; },4000);
     } else {
       const err = await res.json();
-      alert("Error: " + (err.message || res.status));
-      btn.textContent = "💬 Test Text";
-      btn.classList.remove("sending");
-      btn.disabled = false;
+      alert("Error: "+(err.message||res.status));
+      btn.textContent="💬 Test"; btn.disabled=false;
     }
-  } catch(e) {
-    alert("Error: " + e.message);
-    btn.textContent = "💬 Test Text";
-    btn.classList.remove("sending");
-    btn.disabled = false;
-  }
+  } catch(e) { alert("Error: "+e.message); btn.textContent="💬 Test"; btn.disabled=false; }
+}
+
+async function sendCalendarLink(i, name) {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+  if (!confirm(`Send calendar link to ${name} via SMS?`)) return;
+  const btn = document.getElementById(`cal-btn-${i}`);
+  btn.textContent="Sending…"; btn.disabled=true;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
+      method:"POST", headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({ref:"main",inputs:{test_user:"",send_calendar:name}})
+    });
+    if (res.ok||res.status===204) {
+      btn.textContent="✅ Sent!"; btn.classList.add("sent");
+      setTimeout(()=>{ btn.textContent="📅 Send Link"; btn.classList.remove("sent"); btn.disabled=false; },4000);
+    } else {
+      const err=await res.json(); alert("Error: "+(err.message||res.status));
+      btn.textContent="📅 Send Link"; btn.disabled=false;
+    }
+  } catch(e) { alert("Error: "+e.message); btn.textContent="📅 Send Link"; btn.disabled=false; }
+}
+
+async function sendOfficeTest() {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+  const btn = document.getElementById("office-test-btn");
+  btn.textContent="Sending…"; btn.disabled=true;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
+      method:"POST", headers:{Authorization:`token ${token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({ref:"main",inputs:{test_user:"office"}})
+    });
+    if (res.ok||res.status===204) {
+      btn.textContent="✅ Sent!"; btn.classList.add("sent");
+      setTimeout(()=>{ btn.textContent="💬 Test Text"; btn.classList.remove("sent"); btn.disabled=false; },4000);
+    } else {
+      const err=await res.json(); alert("Error: "+(err.message||res.status));
+      btn.textContent="💬 Test Text"; btn.disabled=false;
+    }
+  } catch(e) { alert("Error: "+e.message); btn.textContent="💬 Test Text"; btn.disabled=false; }
 }
 
 function copyIcs(i) {
   const input = document.getElementById(`ics-url-${i}`);
   navigator.clipboard.writeText(input.value).then(() => {
-    const btn = input.nextElementSibling;
-    btn.textContent = "Copied!";
-    btn.classList.add("copied");
-    setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("copied"); }, 2000);
+    const btn = document.getElementById(`copy-btn-${i}`);
+    btn.textContent="Copied!"; btn.classList.add("sent");
+    setTimeout(()=>{ btn.textContent="Copy"; btn.classList.remove("sent"); },2000);
   });
 }
 
 function updateIcsRow(i) {
   const name   = document.getElementById(`emp-name-${i}`).value.trim().toLowerCase();
   const url    = `${BASE_URL}/${name}_schedule.ics`;
-  const webcal = url.replace("https://", "webcal://");
+  const webcal = url.replace("https://","webcal://");
   document.getElementById(`ics-url-${i}`).value = url;
   document.getElementById(`ics-open-${i}`).href  = webcal;
 }
 
 // ── Calendar viewer ──────────────────────────────────────────────────────────
-
-function closeModal() {
-  document.getElementById("cal-modal").classList.remove("open");
-}
+function closeModal() { document.getElementById("cal-modal").classList.remove("open"); }
 
 function parseIcsEvents(text) {
-  const events = [];
-  const blocks = text.split("BEGIN:VEVENT");
-  for (let i = 1; i < blocks.length; i++) {
-    const block = blocks[i];
-    const get = (key) => {
-      const m = block.match(new RegExp(`${key}[^:]*:([^\r\n]+)`));
-      return m ? m[1].trim() : "";
-    };
-    const summary  = get("SUMMARY");
-    const dtstart  = get("DTSTART").replace(/[^0-9]/g, "").slice(0, 8);
-    const dtend    = get("DTEND").replace(/[^0-9]/g, "").slice(0, 8);
-    if (dtstart) events.push({ summary, dtstart, dtend });
+  const events=[];
+  const blocks=text.split("BEGIN:VEVENT");
+  for (let i=1;i<blocks.length;i++) {
+    const b=blocks[i];
+    const get=(key)=>{ const m=b.match(new RegExp(`${key}[^:]*:([^\r\n]+)`)); return m?m[1].trim():""; };
+    const dtstart=get("DTSTART").replace(/[^0-9]/g,"").slice(0,8);
+    const dtend  =get("DTEND").replace(/[^0-9]/g,"").slice(0,8);
+    if (dtstart) events.push({summary:get("SUMMARY"),dtstart,dtend});
   }
   return events;
 }
 
 function formatDate(d8) {
-  // d8 = "YYYYMMDD"
-  const y = d8.slice(0,4), m = d8.slice(4,6), day = d8.slice(6,8);
-  const dt = new Date(+y, +m - 1, +day);
-  return dt.toLocaleDateString("en-CA", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+  const y=d8.slice(0,4),m=d8.slice(4,6),day=d8.slice(6,8);
+  return new Date(+y,+m-1,+day).toLocaleDateString("en-CA",{weekday:"short",year:"numeric",month:"short",day:"numeric"});
 }
 
-function today8() {
-  const d = new Date();
-  return d.toISOString().slice(0,10).replace(/-/g,"");
-}
+function today8() { return new Date().toISOString().slice(0,10).replace(/-/g,""); }
 
 async function viewCalendar(name) {
-  document.getElementById("modal-title").textContent = `${name}'s Schedule`;
-  document.getElementById("modal-body").innerHTML = `<div class="modal-loading">⏳ Loading...</div>`;
+  document.getElementById("modal-title").textContent=`${name}'s Schedule`;
+  document.getElementById("modal-body").innerHTML=`<div class="modal-loading">⏳ Loading…</div>`;
   document.getElementById("cal-modal").classList.add("open");
-
-  const url = `${BASE_URL}/${name.toLowerCase()}_schedule.ics?cb=${Date.now()}`;
-  let text;
   try {
-    const r = await fetch(url);
-    text = await r.text();
+    const text=await(await fetch(`${BASE_URL}/${name.toLowerCase()}_schedule.ics?cb=${Date.now()}`)).text();
+    const events=parseIcsEvents(text);
+    const todayD=today8();
+    const oncall  =events.filter(e=>e.summary.toLowerCase().includes("on call")||e.summary.toLowerCase().includes("oncall"));
+    const vacation=events.filter(e=>e.summary.toLowerCase().includes("vacation"));
+    const upcoming=(list)=>list.filter(e=>e.dtstart>=todayD).sort((a,b)=>a.dtstart.localeCompare(b.dtstart));
+    const upOncall=upcoming(oncall), upVacation=upcoming(vacation);
+    let html="";
+    if (!upOncall.length&&!upVacation.length) html=`<p style="color:#9ca3af;text-align:center;padding:32px">No upcoming events.</p>`;
+    if (upOncall.length) {
+      html+=`<div class="cal-section-title">On Call</div>`;
+      upOncall.forEach(ev=>{
+        const t=ev.dtstart===todayD;
+        html+=`<div class="cal-event ${t?"today":"oncall"}"><div class="cal-date">${formatDate(ev.dtstart)}${t?`<span class="cal-today-badge">TODAY</span>`:""}</div><div class="cal-label">${ev.summary}</div></div>`;
+      });
+    }
+    if (upVacation.length) {
+      html+=`<div class="cal-section-title">Vacation</div>`;
+      upVacation.forEach(ev=>{
+        const end=ev.dtend&&ev.dtend!==ev.dtstart?` → ${formatDate(ev.dtend)}`:"";
+        html+=`<div class="cal-event vacation"><div class="cal-date">${formatDate(ev.dtstart)}${end}</div><div class="cal-label">${ev.summary}</div></div>`;
+      });
+    }
+    document.getElementById("modal-body").innerHTML=html;
   } catch(e) {
-    document.getElementById("modal-body").innerHTML = `<p style="color:#dc2626">Failed to load calendar: ${e.message}</p>`;
-    return;
+    document.getElementById("modal-body").innerHTML=`<p style="color:#dc2626">Failed to load: ${e.message}</p>`;
   }
-
-  const events  = parseIcsEvents(text);
-  const todayD  = today8();
-
-  // Separate on-call vs vacation, filter to today + future, sort
-  const oncall   = events.filter(e => e.summary.toLowerCase().includes("on call") || e.summary.toLowerCase().includes("oncall"));
-  const vacation = events.filter(e => e.summary.toLowerCase().includes("vacation"));
-
-  const upcoming = (list) => list.filter(e => e.dtstart >= todayD).sort((a,b) => a.dtstart.localeCompare(b.dtstart));
-  const upOncall   = upcoming(oncall);
-  const upVacation = upcoming(vacation);
-
-  let html = "";
-
-  if (upOncall.length === 0 && upVacation.length === 0) {
-    html = `<p style="color:#888;text-align:center;padding:30px">No upcoming events found.</p>`;
-  }
-
-  if (upOncall.length > 0) {
-    html += `<div class="cal-section-title">🔵 On Call</div>`;
-    upOncall.forEach(ev => {
-      const isToday = ev.dtstart === todayD;
-      const cls     = isToday ? "cal-event oncall today" : "cal-event oncall";
-      html += `<div class="${cls}">
-        <div class="cal-date">${formatDate(ev.dtstart)}${isToday ? `<span class="cal-today-badge">TODAY</span>` : ""}</div>
-        <div class="cal-label">${ev.summary}</div>
-      </div>`;
-    });
-  }
-
-  if (upVacation.length > 0) {
-    html += `<div class="cal-section-title">🟢 Vacation</div>`;
-    upVacation.forEach(ev => {
-      const endLabel = ev.dtend && ev.dtend !== ev.dtstart
-        ? ` → ${formatDate(ev.dtend)}`
-        : "";
-      html += `<div class="cal-event vacation">
-        <div class="cal-date">${formatDate(ev.dtstart)}${endLabel}</div>
-        <div class="cal-label">${ev.summary}</div>
-      </div>`;
-    });
-  }
-
-  document.getElementById("modal-body").innerHTML = html;
 }
 
 loadToken();
