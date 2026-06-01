@@ -290,8 +290,9 @@ async function saveConfig() {
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(newConfig, null, 2))));
 
   try {
-    // Get current SHA of config.json
-    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json`, {
+    // Get current SHA of config.json (no-store prevents stale cached SHA)
+    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/config.json?_=${Date.now()}`, {
+      cache: "no-store",
       headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json" }
     });
     const data = await r.json();
