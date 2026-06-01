@@ -299,9 +299,11 @@
   }
   .cal-section-title:first-child { margin-top: 0; }
   .cal-event { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; margin-bottom:5px; }
-  .cal-event.oncall  { background:#f0fdf4; border-left:3px solid #2d6a27; }
-  .cal-event.vacation{ background:#eff6ff; border-left:3px solid #2563eb; }
-  .cal-event.today   { background:#fefce8; border-left:3px solid #d97706; }
+  .cal-event.oncall   { background:#f0fdf4; border-left:3px solid #2d6a27; }
+  .cal-event.vacation { background:#eff6ff; border-left:3px solid #2563eb; }
+  .cal-event.today    { background:#fefce8; border-left:3px solid #d97706; }
+  .cal-event.conflict { background:#fff7ed; border-left:3px solid #f97316; }
+  .cal-conflict-label { font-size:0.72rem; color:#ea580c; font-weight:600; margin-left:6px; }
   .cal-date { font-weight:600; font-size:0.875rem; min-width:130px; color:#1a2e14; }
   .cal-label { font-size:0.82rem; color:#6b7280; }
   .conflict-badge {
@@ -733,13 +735,17 @@ async function viewCalendar(name) {
     const vacation=events.filter(e=>e.summary.toLowerCase().includes("vacation"));
     const upcoming=(list)=>list.filter(e=>e.dtstart>=todayD).sort((a,b)=>a.dtstart.localeCompare(b.dtstart));
     const upOncall=upcoming(oncall), upVacation=upcoming(vacation);
+    const conflictSet=new Set(findIcsConflicts(events));
     let html="";
     if (!upOncall.length&&!upVacation.length) html=`<p style="color:#9ca3af;text-align:center;padding:32px">No upcoming events.</p>`;
     if (upOncall.length) {
       html+=`<div class="cal-section-title">On Call</div>`;
       upOncall.forEach(ev=>{
         const t=ev.dtstart===todayD;
-        html+=`<div class="cal-event ${t?"today":"oncall"}"><div class="cal-date">${formatDate(ev.dtstart)}${t?`<span class="cal-today-badge">TODAY</span>`:""}</div><div class="cal-label">${ev.summary}</div></div>`;
+        const c=conflictSet.has(ev.dtstart);
+        const cls=t?"today":c?"conflict":"oncall";
+        const extra=c?`<span class="cal-conflict-label">⚠️ Vacation conflict</span>`:"";
+        html+=`<div class="cal-event ${cls}"><div class="cal-date">${formatDate(ev.dtstart)}${t?`<span class="cal-today-badge">TODAY</span>`:""}</div><div class="cal-label">${ev.summary}${extra}</div></div>`;
       });
     }
     if (upVacation.length) {
