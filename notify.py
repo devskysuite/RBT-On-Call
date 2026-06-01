@@ -22,8 +22,18 @@ def main():
     from_num = os.environ.get("TWILIO_FROM", "")
     today    = date.today().strftime("%Y%m%d")
 
-    # TEST MODE: send test text to a single employee
+    # TEST MODE
     test_user = os.environ.get("TEST_USER", "").strip().lower()
+    if test_user == "office":
+        office = CONFIG.get("office", {})
+        phone  = office.get("phone", "")
+        if phone:
+            names = ", ".join(e["name"] for e in CONFIG["employees"] if e.get("active", True))
+            status = send_sms(sid, token, from_num, phone, f"Test - On call today: {names}")
+            print(f"Test text sent to office ({phone}): {status}")
+        else:
+            print("No office phone configured")
+        return
     if test_user:
         for emp in CONFIG["employees"]:
             if emp["name"].lower() == test_user and emp.get("active", True):

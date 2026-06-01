@@ -97,7 +97,7 @@
     <h2>🏢 Office Notification</h2>
     <p style="font-size:0.9rem;color:#666;margin-bottom:16px;">This number receives a daily text listing everyone who is on call.</p>
     <table>
-      <thead><tr><th>Phone</th><th>Active</th></tr></thead>
+      <thead><tr><th>Phone</th><th>Active</th><th></th></tr></thead>
       <tbody>
         <tr>
           <td><input type="text" id="office-phone" placeholder="+15195551234" /></td>
@@ -106,6 +106,9 @@
               <input type="checkbox" id="office-active" />
               <span class="slider"></span>
             </label>
+          </td>
+          <td>
+            <button class="btn-test" id="office-test-btn" onclick="sendOfficeTest()">💬 Test Text</button>
           </td>
         </tr>
       </tbody>
@@ -276,6 +279,41 @@ async function loadConfig() {
     renderOffice();
   } catch (e) {
     document.getElementById("save-status").textContent = "Failed to load config: " + e.message;
+  }
+}
+
+async function sendOfficeTest() {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+
+  const btn = document.getElementById("office-test-btn");
+  btn.textContent = "Sending...";
+  btn.classList.add("sending");
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/update_calendar.yml/dispatches`, {
+      method: "POST",
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: "main", inputs: { test_user: "office" } })
+    });
+    if (res.ok || res.status === 204) {
+      btn.textContent = "✅ Sent!";
+      btn.classList.remove("sending");
+      btn.classList.add("sent");
+      setTimeout(() => { btn.textContent = "💬 Test Text"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
+    } else {
+      const err = await res.json();
+      alert("Error: " + (err.message || res.status));
+      btn.textContent = "💬 Test Text";
+      btn.classList.remove("sending");
+      btn.disabled = false;
+    }
+  } catch(e) {
+    alert("Error: " + e.message);
+    btn.textContent = "💬 Test Text";
+    btn.classList.remove("sending");
+    btn.disabled = false;
   }
 }
 
