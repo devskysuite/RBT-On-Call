@@ -38,8 +38,29 @@ def get_email_gateway(phone, carrier):
 def main():
     gmail_user = os.environ.get("GMAIL_USER", CONFIG.get("gmail_user", ""))
     gmail_pass = os.environ.get("GMAIL_PASSWORD", "")
-    today = date.today().strftime("%Y%m%d")
+    today      = date.today().strftime("%Y%m%d")
 
+    # TEST MODE: send a test text to a single named employee
+    test_user = os.environ.get("TEST_USER", "").strip().lower()
+    if test_user:
+        for emp in CONFIG["employees"]:
+            if emp["name"].lower() == test_user and emp.get("active", True):
+                name    = emp["name"]
+                phone   = emp.get("phone", "")
+                carrier = emp.get("carrier", "")
+                to_email = get_email_gateway(phone, carrier) if phone and carrier else None
+                if to_email:
+                    send_text(gmail_user, gmail_pass, to_email,
+                              f"Test: {name} on-call reminder",
+                              f"Test message: {name}, you are on call today!")
+                    print(f"Test text sent to {name} at {to_email}")
+                else:
+                    print(f"No valid phone/carrier for {name}")
+                return
+        print(f"Employee '{test_user}' not found in config")
+        return
+
+    # NORMAL MODE: check who is on call today
     oncall_today = []
 
     for emp in CONFIG["employees"]:
@@ -61,21 +82,20 @@ def main():
             oncall_today.append(name)
             print(f"  {name} is on call today")
 
-            # Text the individual
             if phone and carrier:
                 to_email = get_email_gateway(phone, carrier)
                 if to_email:
                     try:
                         send_text(gmail_user, gmail_pass, to_email,
                                   f"Reminder: {name} is on call today!",
-                                  f"Reminder: {name} is on call today!")
+                                  f"Reminder: {name}, you are on call today!")
                         print(f"    Texted {name} at {to_email}")
                     except Exception as e:
                         print(f"    Failed to text {name}: {e}")
         else:
             print(f"  {name} is NOT on call today")
 
-    # Text the office about everyone on call today
+    # Text the office listing everyone on call by name
     office = CONFIG.get("office", {})
     if office.get("active") and office.get("phone") and office.get("carrier") and oncall_today:
         to_email = get_email_gateway(office["phone"], office["carrier"])
