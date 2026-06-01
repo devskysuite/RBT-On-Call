@@ -13,6 +13,7 @@ Handles:
 import urllib.request
 import json
 import os
+import re
 from datetime import datetime, date, timedelta
 
 with open("config.json") as f:
@@ -87,7 +88,8 @@ def parse_date(val):
 
 def matches(event, name):
     summary = event.get("SUMMARY", "").lower()
-    return name.lower() in summary
+    # Use word-boundary match so "Will" doesn't match inside "will be on call"
+    return bool(re.search(r'\b' + re.escape(name.lower()) + r'\b', summary))
 
 def is_oncall(event, name):
     summary = event.get("SUMMARY", "").lower()
