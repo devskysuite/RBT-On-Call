@@ -1,8 +1,31 @@
-import json, os, urllib.request, urllib.parse, base64
+import json, os, urllib.request, urllib.parse, base64, re
 from datetime import date
 
 with open("config.json") as f:
     CONFIG = json.load(f)
+
+def is_oncall_today(ics_content, today):
+    """Return True only if the ICS has an on-call (not vacation) event on today."""
+    in_event = False
+    summary = ""
+    has_today = False
+    for line in ics_content.splitlines():
+        if line.strip() == "BEGIN:VEVENT":
+            in_event = True
+            summary = ""
+            has_today = False
+        elif line.strip() == "END:VEVENT":
+            if in_event and has_today:
+                s = summary.lower()
+                if ("on call" in s or "oncall" in s) and "vacation" not in s:
+                    return True
+            in_event = False
+        elif in_event:
+            if line.upper().startswith("SUMMARY"):
+                summary = line.split(":", 1)[-1].strip()
+            elif f"DTSTART;VALUE=DATE:{today}" in line:
+                has_today = True
+    return False
 
 def send_sms(sid, token, from_num, to_num, body):
     data = urllib.parse.urlencode({"From": from_num, "To": to_num, "Body": body}).encode()
@@ -37,7 +60,7 @@ def main():
                 if os.path.exists(ics_file):
                     with open(ics_file) as f:
                         content = f.read()
-                    if f"DTSTART;VALUE=DATE:{today}" in content:
+                    if is_oncall_today(content, today):
                         oncall_today.append(emp["name"])
             if oncall_today:
                 names = ", ".join(oncall_today)
@@ -80,7 +103,7 @@ def main():
         with open(ics_file) as f:
             content = f.read()
 
-        if f"DTSTART;VALUE=DATE:{today}" in content:
+        if is_oncall_today(content, today):
             oncall_today.append(name)
             print(f"  {name} is on call today")
             if phone:
