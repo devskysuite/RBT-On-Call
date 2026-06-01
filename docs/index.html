@@ -370,6 +370,7 @@
     <table>
       <thead>
         <tr>
+          <th style="width:36px;">#</th>
           <th>Name</th>
           <th>Phone</th>
           <th>Active</th>
@@ -445,6 +446,7 @@ function renderEmployees() {
     const webcal = icsUrl.replace("https://", "webcal://");
     tbody.innerHTML += `
       <tr id="emp-row-${i}">
+        <td style="color:#9ca3af;font-size:0.85rem;font-weight:600;text-align:center;">${i + 1}</td>
         <td><input type="text" id="emp-name-${i}" value="${emp.name}" onchange="updateIcsRow(${i})" style="max-width:160px;" /></td>
         <td><input type="text" id="emp-phone-${i}" value="${emp.phone || ""}" placeholder="+12265551234" style="max-width:180px;" /></td>
         <td>
