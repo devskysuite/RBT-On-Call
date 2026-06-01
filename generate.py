@@ -297,6 +297,8 @@ def build_ics(all_events, name):
         f"X-WR-CALDESC:{name} on-call and vacation schedule — auto-updated daily from RBT calendar",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
+        "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+        "X-PUBLISHED-TTL:PT1H",
     ] + output_blocks + ["END:VCALENDAR"]
 
     return "\n".join(lines)
