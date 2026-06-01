@@ -56,6 +56,27 @@
   .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
   .badge-on { background: #d1fae5; color: #059669; }
   .badge-off { background: #f3f4f6; color: #9ca3af; }
+  .btn-view { padding: 4px 10px; font-size: 0.78rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .btn-view:hover { background: #dbeafe; }
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 16px; width: 100%; max-width: 520px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.2); margin: 20px; }
+  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-size: 1.1rem; font-weight: 600; color: #1a1a2e; }
+  .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #888; line-height: 1; }
+  .modal-close:hover { color: #333; }
+  .modal-body { overflow-y: auto; padding: 16px 24px 24px; flex: 1; }
+  .cal-section-title { font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 600; margin: 16px 0 8px; letter-spacing: 0.05em; }
+  .cal-section-title:first-child { margin-top: 0; }
+  .cal-event { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; }
+  .cal-event.oncall { background: #eff6ff; border-left: 3px solid #2563eb; }
+  .cal-event.vacation { background: #f0fdf4; border-left: 3px solid #16a34a; }
+  .cal-event.today { background: #fefce8; border-left: 3px solid #ca8a04; }
+  .cal-date { font-weight: 600; font-size: 0.9rem; min-width: 110px; }
+  .cal-label { font-size: 0.85rem; color: #555; }
+  .cal-today-badge { font-size: 0.7rem; background: #fef08a; color: #854d0e; padding: 1px 6px; border-radius: 99px; font-weight: 600; margin-left: 6px; }
+  .modal-loading { text-align: center; padding: 40px; color: #888; }
 </style>
 </head>
 <body>
@@ -117,6 +138,19 @@
 
 </div>
 
+<!-- Calendar Modal -->
+<div class="modal-overlay" id="cal-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Schedule</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="modal-loading">Loading...</div>
+    </div>
+  </div>
+</div>
+
 <div class="save-bar">
   <span class="status" id="save-status"></span>
   <button class="btn btn-primary" onclick="saveConfig()">💾 Save Changes</button>
@@ -164,6 +198,7 @@ function renderEmployees() {
             <button class="btn-copy" onclick="copyIcs(${i})">Copy</button>
             <a class="btn-copy" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">📲 Subscribe</a>
             <button class="btn-test" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">💬 Test Text</button>
+            <button class="btn-view" onclick="viewCalendar('${emp.name}')">📆 View</button>
           </div>
         </td>
       </tr>`;
@@ -368,6 +403,101 @@ function updateIcsRow(i) {
   const webcal = url.replace("https://", "webcal://");
   document.getElementById(`ics-url-${i}`).value = url;
   document.getElementById(`ics-open-${i}`).href  = webcal;
+}
+
+// ── Calendar viewer ──────────────────────────────────────────────────────────
+
+function closeModal() {
+  document.getElementById("cal-modal").classList.remove("open");
+}
+
+function parseIcsEvents(text) {
+  const events = [];
+  const blocks = text.split("BEGIN:VEVENT");
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const get = (key) => {
+      const m = block.match(new RegExp(`${key}[^:]*:([^\r\n]+)`));
+      return m ? m[1].trim() : "";
+    };
+    const summary  = get("SUMMARY");
+    const dtstart  = get("DTSTART").replace(/[^0-9]/g, "").slice(0, 8);
+    const dtend    = get("DTEND").replace(/[^0-9]/g, "").slice(0, 8);
+    if (dtstart) events.push({ summary, dtstart, dtend });
+  }
+  return events;
+}
+
+function formatDate(d8) {
+  // d8 = "YYYYMMDD"
+  const y = d8.slice(0,4), m = d8.slice(4,6), day = d8.slice(6,8);
+  const dt = new Date(+y, +m - 1, +day);
+  return dt.toLocaleDateString("en-CA", { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+}
+
+function today8() {
+  const d = new Date();
+  return d.toISOString().slice(0,10).replace(/-/g,"");
+}
+
+async function viewCalendar(name) {
+  document.getElementById("modal-title").textContent = `${name}'s Schedule`;
+  document.getElementById("modal-body").innerHTML = `<div class="modal-loading">⏳ Loading...</div>`;
+  document.getElementById("cal-modal").classList.add("open");
+
+  const url = `${BASE_URL}/${name.toLowerCase()}_schedule.ics?cb=${Date.now()}`;
+  let text;
+  try {
+    const r = await fetch(url);
+    text = await r.text();
+  } catch(e) {
+    document.getElementById("modal-body").innerHTML = `<p style="color:#dc2626">Failed to load calendar: ${e.message}</p>`;
+    return;
+  }
+
+  const events  = parseIcsEvents(text);
+  const todayD  = today8();
+
+  // Separate on-call vs vacation, filter to today + future, sort
+  const oncall   = events.filter(e => e.summary.toLowerCase().includes("on call") || e.summary.toLowerCase().includes("oncall"));
+  const vacation = events.filter(e => e.summary.toLowerCase().includes("vacation"));
+
+  const upcoming = (list) => list.filter(e => e.dtstart >= todayD).sort((a,b) => a.dtstart.localeCompare(b.dtstart));
+  const upOncall   = upcoming(oncall);
+  const upVacation = upcoming(vacation);
+
+  let html = "";
+
+  if (upOncall.length === 0 && upVacation.length === 0) {
+    html = `<p style="color:#888;text-align:center;padding:30px">No upcoming events found.</p>`;
+  }
+
+  if (upOncall.length > 0) {
+    html += `<div class="cal-section-title">🔵 On Call</div>`;
+    upOncall.forEach(ev => {
+      const isToday = ev.dtstart === todayD;
+      const cls     = isToday ? "cal-event oncall today" : "cal-event oncall";
+      html += `<div class="${cls}">
+        <div class="cal-date">${formatDate(ev.dtstart)}${isToday ? `<span class="cal-today-badge">TODAY</span>` : ""}</div>
+        <div class="cal-label">${ev.summary}</div>
+      </div>`;
+    });
+  }
+
+  if (upVacation.length > 0) {
+    html += `<div class="cal-section-title">🟢 Vacation</div>`;
+    upVacation.forEach(ev => {
+      const endLabel = ev.dtend && ev.dtend !== ev.dtstart
+        ? ` → ${formatDate(ev.dtend)}`
+        : "";
+      html += `<div class="cal-event vacation">
+        <div class="cal-date">${formatDate(ev.dtstart)}${endLabel}</div>
+        <div class="cal-label">${ev.summary}</div>
+      </div>`;
+    });
+  }
+
+  document.getElementById("modal-body").innerHTML = html;
 }
 
 loadToken();
