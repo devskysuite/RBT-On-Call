@@ -5,6 +5,9 @@ on:
     - cron: '0 6 * * *'   # 6 AM UTC - refresh all calendars daily
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   update-calendars:
     runs-on: ubuntu-latest
