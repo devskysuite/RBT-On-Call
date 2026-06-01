@@ -1,5 +1,5 @@
 import json, os, urllib.request, urllib.parse, base64, re
-from datetime import date
+from datetime import date, datetime, timedelta
 
 with open("config.json") as f:
     CONFIG = json.load(f)
@@ -27,6 +27,70 @@ def is_oncall_today(ics_content, today):
                 has_today = True
     return False
 
+def find_conflicts(ics_content):
+    """
+    Parse an ICS file and return a list of on-call dates (YYYYMMDD strings)
+    that fall within a vacation range. Only returns future dates.
+    """
+    today = date.today().strftime("%Y%m%d")
+
+    # Parse all events into {summary, dtstart, dtend}
+    events = []
+    in_event = False
+    ev = {}
+    for line in ics_content.splitlines():
+        if line.strip() == "BEGIN:VEVENT":
+            in_event = True
+            ev = {}
+        elif line.strip() == "END:VEVENT":
+            if in_event and ev:
+                events.append(ev)
+            in_event = False
+        elif in_event:
+            if ":" in line:
+                key = line.split(";")[0].split(":")[0].upper().strip()
+                val = line.split(":", 1)[-1].strip()
+                if key in ("SUMMARY", "DTSTART", "DTEND"):
+                    ev[key] = val
+
+    # Collect on-call dates and vacation ranges (future only)
+    oncall_dates = set()
+    vacation_ranges = []
+
+    for ev in events:
+        summary = ev.get("SUMMARY", "").lower()
+        dtstart = ev.get("DTSTART", "").replace("Z", "")[:8]
+        dtend   = ev.get("DTEND",   "").replace("Z", "")[:8]
+        if not dtstart:
+            continue
+
+        is_oc  = ("on call" in summary or "oncall" in summary) and "vacation" not in summary
+        is_vac = "vacation" in summary
+
+        if is_oc and dtstart >= today:
+            oncall_dates.add(dtstart)
+        elif is_vac and dtstart:
+            vacation_ranges.append((dtstart, dtend or dtstart))
+
+    # Find conflicts
+    conflicts = []
+    for d in sorted(oncall_dates):
+        for vac_start, vac_end in vacation_ranges:
+            if vac_start <= d < vac_end:
+                conflicts.append(d)
+                break
+
+    return conflicts
+
+
+def format_date(d8):
+    """Format YYYYMMDD to readable date string."""
+    try:
+        return datetime.strptime(d8, "%Y%m%d").strftime("%b %d, %Y")
+    except Exception:
+        return d8
+
+
 def send_sms(sid, token, from_num, to_num, body):
     data = urllib.parse.urlencode({"From": from_num, "To": to_num, "Body": body}).encode()
     req = urllib.request.Request(
@@ -40,11 +104,12 @@ def send_sms(sid, token, from_num, to_num, body):
     return resp.status
 
 def main():
-    sid           = os.environ.get("TWILIO_ACCOUNT_SID", "")
-    token         = os.environ.get("TWILIO_AUTH_TOKEN", "")
-    from_num      = os.environ.get("TWILIO_FROM", "")
-    today         = date.today().strftime("%Y%m%d")
-    send_calendar = os.environ.get("SEND_CALENDAR", "").strip().lower()
+    sid             = os.environ.get("TWILIO_ACCOUNT_SID", "")
+    token           = os.environ.get("TWILIO_AUTH_TOKEN", "")
+    from_num        = os.environ.get("TWILIO_FROM", "")
+    today           = date.today().strftime("%Y%m%d")
+    send_calendar   = os.environ.get("SEND_CALENDAR",   "").strip().lower()
+    check_conflicts = os.environ.get("CHECK_CONFLICTS", "").strip().lower()
 
     # SEND CALENDAR LINK MODE
     if send_calendar:
@@ -65,6 +130,46 @@ def main():
                     print(f"No phone for {name}")
                 return
         print(f"Employee '{send_calendar}' not found")
+        return
+
+    # CONFLICT CHECK MODE
+    if check_conflicts == "true":
+        # Find Jordan's phone to send the report to
+        jordan_phone = ""
+        for emp in CONFIG["employees"]:
+            if emp["name"].lower() == "jordan" and emp.get("active", True):
+                jordan_phone = emp.get("phone", "")
+                break
+
+        if not jordan_phone:
+            print("No phone found for Jordan — cannot send conflict report")
+            return
+
+        all_conflicts = []
+        for emp in CONFIG["employees"]:
+            if not emp.get("active", True):
+                continue
+            name     = emp["name"]
+            ics_file = f"docs/{name.lower()}_schedule.ics"
+            if not os.path.exists(ics_file):
+                print(f"  No ICS for {name}, skipping conflict check")
+                continue
+            with open(ics_file) as f:
+                content = f.read()
+            conflicts = find_conflicts(content)
+            if conflicts:
+                dates_str = ", ".join(format_date(d) for d in conflicts)
+                all_conflicts.append(f"{name}: {dates_str}")
+                print(f"  {name} has conflicts on: {dates_str}")
+            else:
+                print(f"  {name}: no conflicts")
+
+        if all_conflicts:
+            msg = "⚠️ On-Call/Vacation Conflicts:\n" + "\n".join(all_conflicts)
+            send_sms(sid, token, from_num, jordan_phone, msg)
+            print(f"Conflict report sent to Jordan ({jordan_phone})")
+        else:
+            print("No conflicts found — no text sent")
         return
 
     # TEST MODE
@@ -149,6 +254,37 @@ def main():
 
     if not oncall_today:
         print("  Nobody on call today")
+
+    # Daily conflict check — always runs and texts Jordan if any conflicts found
+    jordan_phone = ""
+    for emp in CONFIG["employees"]:
+        if emp["name"].lower() == "jordan" and emp.get("active", True):
+            jordan_phone = emp.get("phone", "")
+            break
+
+    all_conflicts = []
+    for emp in CONFIG["employees"]:
+        if not emp.get("active", True):
+            continue
+        name     = emp["name"]
+        ics_file = f"docs/{name.lower()}_schedule.ics"
+        if not os.path.exists(ics_file):
+            continue
+        with open(ics_file) as f:
+            content = f.read()
+        conflicts = find_conflicts(content)
+        if conflicts:
+            dates_str = ", ".join(format_date(d) for d in conflicts)
+            all_conflicts.append(f"{name}: {dates_str}")
+            print(f"  Conflict — {name} on call during vacation: {dates_str}")
+
+    if all_conflicts and jordan_phone:
+        msg = "⚠️ On-Call/Vacation Conflicts:\n" + "\n".join(all_conflicts)
+        try:
+            send_sms(sid, token, from_num, jordan_phone, msg)
+            print(f"  Conflict report sent to Jordan")
+        except Exception as e:
+            print(f"  Failed to send conflict report: {e}")
 
 if __name__ == "__main__":
     main()

@@ -400,6 +400,9 @@
       <div style="padding-top:20px;">
         <button class="btn-sm orange" id="office-test-btn" onclick="sendOfficeTest()">💬 Test Text</button>
       </div>
+      <div style="padding-top:20px;">
+        <button class="btn-sm" id="conflict-btn" onclick="checkConflicts()" style="background:#fefce8;color:#854d0e;border-color:#fde047;">⚠️ Check Conflicts</button>
+      </div>
     </div>
   </div>
 
@@ -729,6 +732,31 @@ async function viewCalendar(name) {
     document.getElementById("modal-body").innerHTML=html;
   } catch(e) {
     document.getElementById("modal-body").innerHTML=`<p style="color:#dc2626">Failed to load: ${e.message}</p>`;
+  }
+}
+
+async function checkConflicts() {
+  const token = document.getElementById("gh-token").value.trim();
+  if (!token) { alert("Please enter your GitHub token first."); return; }
+  const btn = document.getElementById("conflict-btn");
+  btn.textContent = "Checking…"; btn.disabled = true;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/notify.yml/dispatches`, {
+      method: "POST",
+      headers: { Authorization: `token ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: "main", inputs: { test_user: "", send_calendar: "", check_conflicts: "true" } })
+    });
+    if (res.ok || res.status === 204) {
+      btn.textContent = "✅ Sent!"; btn.classList.add("sent");
+      setTimeout(() => { btn.textContent = "⚠️ Check Conflicts"; btn.classList.remove("sent"); btn.disabled = false; }, 4000);
+    } else {
+      const err = await res.json();
+      alert("Error: " + (err.message || res.status));
+      btn.textContent = "⚠️ Check Conflicts"; btn.disabled = false;
+    }
+  } catch(e) {
+    alert("Error: " + e.message);
+    btn.textContent = "⚠️ Check Conflicts"; btn.disabled = false;
   }
 }
 
