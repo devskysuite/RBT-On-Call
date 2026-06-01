@@ -50,6 +50,16 @@
       "name": "Dylan",
       "phone": "5198653532",
       "active": true
+    },
+    {
+      "name": "Hugo",
+      "phone": "2266986461",
+      "active": true
+    },
+    {
+      "name": "Joel",
+      "phone": "5197170878",
+      "active": true
     }
   ],
   "office": {
