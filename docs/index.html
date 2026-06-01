@@ -263,8 +263,9 @@ async function refreshCalendars() {
     );
     if (resp.status === 204) {
       btn.textContent = "✅ Refresh Started";
-      status.textContent = "Calendar refresh triggered — takes ~1 min to deploy.";
+      status.textContent = "Calendar refresh triggered — reloading in 3s…";
       status.className = "status ok";
+      setTimeout(() => location.reload(), 3000);
     } else {
       const err = await resp.json().catch(() => ({}));
       throw new Error(err.message || `HTTP ${resp.status}`);
@@ -275,10 +276,6 @@ async function refreshCalendars() {
     status.textContent = "Error: " + e.message;
     status.className = "status err";
   }
-  setTimeout(() => {
-    btn.textContent = "🔄 Refresh Calendars";
-    btn.disabled = false;
-  }, 10000);
 }
 
 async function saveConfig() {
@@ -310,8 +307,9 @@ async function saveConfig() {
 
     if (res.ok) {
       status.className = "status ok";
-      status.textContent = "✅ Saved! Calendar will refresh at next scheduled run.";
+      status.textContent = "✅ Saved! Reloading in 3s…";
       config = newConfig;
+      setTimeout(() => location.reload(), 3000);
     } else {
       const err = await res.json();
       status.className = "status err";
