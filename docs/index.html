@@ -466,6 +466,23 @@
       </div>
     </div>
     <div id="rot-status" style="font-size:0.85rem;margin-top:10px;"></div>
+
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;" />
+
+    <div style="font-size:0.875rem;font-weight:600;color:#1a2e14;margin-bottom:10px;">&#x1F9F9; Clear On-Call Events</div>
+    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:12px;">Deletes all on-call events in the selected date range from Outlook. Vacation events are not affected.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="field">
+        <label class="field-label">From</label>
+        <input type="date" id="clear-from" style="max-width:160px;" />
+      </div>
+      <div class="field">
+        <label class="field-label">To</label>
+        <input type="date" id="clear-to" style="max-width:160px;" />
+      </div>
+      <button class="btn-danger-sm" id="clear-btn" onclick="clearOncallEvents()" style="padding:8px 16px;font-size:0.85rem;">&#x1F5D1; Clear Range</button>
+    </div>
+    <div id="clear-status" style="font-size:0.85rem;margin-top:10px;"></div>
   </div>
 
   <!-- Office -->
@@ -1387,6 +1404,67 @@ async function pushRotation() {
     const ghToken = document.getElementById("gh-token").value;
     if (ghToken) refreshCalendars();
   }
+}
+
+async function clearOncallEvents() {
+  const from = document.getElementById("clear-from").value;
+  const to   = document.getElementById("clear-to").value;
+  if (!from || !to) { alert("Please select a date range."); return; }
+  if (from > to) { alert("From date must be before To date."); return; }
+
+  const token = await getGraphToken();
+  if (!token) return;
+
+  const statusEl = document.getElementById("clear-status");
+  const btn = document.getElementById("clear-btn");
+
+  // Fetch all on-call events in range
+  statusEl.textContent = "Finding on-call events...";
+  btn.disabled = true;
+
+  const url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+            + `?startDateTime=${from}T00:00:00&endDateTime=${addDays(to,1)}T00:00:00`
+            + `&$top=999&$select=id,subject`;
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await r.json();
+
+  const toDelete = (data.value || []).filter(ev => {
+    const s = ev.subject.toLowerCase();
+    return (s.includes("on call") || s.includes("oncall")) && !s.includes("vacation");
+  });
+
+  if (!toDelete.length) {
+    statusEl.textContent = "No on-call events found in that range.";
+    btn.disabled = false;
+    return;
+  }
+
+  if (!confirm(`Delete ${toDelete.length} on-call event(s) between ${from} and ${to}?`)) {
+    statusEl.textContent = "";
+    btn.disabled = false;
+    return;
+  }
+
+  statusEl.textContent = `Deleting ${toDelete.length} events...`;
+  let deleted = 0, failed = 0;
+
+  for (const ev of toDelete) {
+    try {
+      const dr = await fetch(`https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/events/${ev.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (dr.ok || dr.status === 204) deleted++;
+      else failed++;
+    } catch { failed++; }
+    await new Promise(res => setTimeout(res, 80));
+  }
+
+  statusEl.textContent = `Done — ${deleted} events deleted${failed ? `, ${failed} failed` : ""}. Refresh calendars to update the site.`;
+  btn.disabled = false;
+
+  const ghToken = document.getElementById("gh-token").value;
+  if (ghToken && deleted > 0) refreshCalendars();
 }
 
 handleOAuthCallback();
