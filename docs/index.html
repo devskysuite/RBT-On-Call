@@ -323,7 +323,7 @@
   .mcal-nav-btn:hover { background:#f3f4f6; }
   .mcal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
   .mcal-dow { text-align:center; font-size:0.72rem; font-weight:700; color:#6b7280; padding:4px 0; text-transform:uppercase; }
-  .mcal-day { min-height:80px; background:white; border:1px solid #e5e7eb; border-radius:6px; padding:4px; font-size:0.75rem; }
+  .mcal-day { min-height:120px; background:white; border:1px solid #e5e7eb; border-radius:6px; padding:6px; font-size:0.75rem; }
   .mcal-day.other-month { background:#f9fafb; }
   .mcal-day.today { border-color:#2d6a27; border-width:2px; }
   .mcal-day-num { font-weight:700; color:#374151; margin-bottom:3px; font-size:0.78rem; }
@@ -389,7 +389,8 @@
   </a>
   <div class="nav-divider"></div>
   <div class="nav-links">
-    <a href="#" class="active">On-Call Manager</a>
+    <a href="#" id="tab-cal-link" class="active" onclick="switchTab('calendar')">&#x1F4C5; Calendar</a>
+    <a href="#" id="tab-setup-link" onclick="switchTab('setup')">&#x2699; Setup</a>
   </div>
 </nav>
 
@@ -428,56 +429,61 @@
     </div>
   </div>
 
-  <!-- Header -->
-  <div class="page-header">
-    <h1 class="page-title">On-Call Manager</h1>
-    <div class="page-actions">
-      <button class="btn-outline" id="refresh-btn" onclick="refreshCalendars()">🔄 Refresh Calendars</button>
-      <button class="btn-solid"   onclick="saveConfig()">Save Changes</button>
+  <!-- ── CALENDAR TAB ── -->
+  <div id="tab-calendar">
+    <div class="page-header">
+      <h1 class="page-title">Team Calendar</h1>
+      <div class="page-actions">
+        <button class="mcal-nav-btn" onclick="changeMonth(-1)" style="font-size:1.1rem;padding:6px 16px;">&#x276E;</button>
+        <span id="mcal-title" style="font-size:1.1rem;font-weight:700;color:#1a2e14;min-width:180px;text-align:center;">Loading...</span>
+        <button class="mcal-nav-btn" onclick="changeMonth(1)" style="font-size:1.1rem;padding:6px 16px;">&#x276F;</button>
+      </div>
+    </div>
+    <div style="background:white;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+      <div class="mcal-grid" id="mcal-grid" style="gap:3px;">
+        <div class="mcal-loading">&#x23F3; Loading calendar...</div>
+      </div>
+      <div class="mcal-legend" style="margin-top:16px;">
+        <div class="mcal-legend-item"><span class="mcal-pill oncall" style="display:inline-block;">On Call</span></div>
+        <div class="mcal-legend-item"><span class="mcal-pill vacation" style="display:inline-block;">Vacation</span></div>
+        <div class="mcal-legend-item"><span class="mcal-pill holiday" style="display:inline-block;">&#x1F341; Stat Holiday</span></div>
+      </div>
     </div>
   </div>
 
-  <!-- Employees -->
-  <div class="card">
-    <div class="card-title">👥 Employees</div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:36px;">#</th>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Active</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="emp-table"></tbody>
-    </table>
-    <button class="btn-add-emp" onclick="addEmployee()">+ Add Employee</button>
-    <div style="margin-top:12px;text-align:right;">
-      <button class="btn-sm orange" id="text-all-btn" onclick="sendTextAll()">💬 Test Text All</button>
+  <!-- ── SETUP TAB ── -->
+  <div id="tab-setup" style="display:none;">
+    <div class="page-header">
+      <h1 class="page-title">Setup</h1>
+      <div class="page-actions">
+        <button class="btn-outline" id="refresh-btn" onclick="refreshCalendars()">&#x1F504; Refresh Calendars</button>
+        <button class="btn-solid" onclick="saveConfig()">Save Changes</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Month Calendar -->
-  <div class="card">
-    <div class="card-title">&#x1F4C5; Team Calendar</div>
-    <div class="mcal-nav">
-      <button class="mcal-nav-btn" onclick="changeMonth(-1)">&#x276E;</button>
-      <span class="mcal-title" id="mcal-title">Loading...</span>
-      <button class="mcal-nav-btn" onclick="changeMonth(1)">&#x276F;</button>
+    <!-- Employees -->
+    <div class="card">
+      <div class="card-title">&#x1F465; Employees</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px;">#</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Active</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="emp-table"></tbody>
+      </table>
+      <button class="btn-add-emp" onclick="addEmployee()">+ Add Employee</button>
+      <div style="margin-top:12px;text-align:right;">
+        <button class="btn-sm orange" id="text-all-btn" onclick="sendTextAll()">&#x1F4AC; Test Text All</button>
+      </div>
     </div>
-    <div class="mcal-grid" id="mcal-grid">
-      <div class="mcal-loading">&#x23F3; Loading calendar...</div>
-    </div>
-    <div class="mcal-legend">
-      <div class="mcal-legend-item"><span class="mcal-pill oncall" style="display:inline-block;">On Call</span></div>
-      <div class="mcal-legend-item"><span class="mcal-pill vacation" style="display:inline-block;">Vacation</span></div>
-      <div class="mcal-legend-item"><span class="mcal-pill holiday" style="display:inline-block;">&#x1F341; Stat Holiday</span></div>
-    </div>
-  </div>
 
-  <!-- Rotation Planner -->
-  <div class="card">
+    <!-- Rotation Planner -->
+    <div class="card">
     <div class="card-title">&#x1F501; Rotation Planner</div>
     <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">
       Fills empty on-call days in Outlook for the next 7 months. Skips days already assigned. Clears nothing past Jan 31, 2028.
@@ -543,8 +549,8 @@
     <div id="clear-status" style="font-size:0.85rem;margin-top:10px;"></div>
   </div>
 
-  <!-- Office -->
-  <div class="card">
+    <!-- Office -->
+    <div class="card">
     <div class="card-title">🏢 Office Notification</div>
     <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">Receives a daily text listing everyone on call.</p>
     <div class="office-row">
@@ -566,9 +572,11 @@
         <button class="btn-sm" id="conflict-btn" onclick="checkConflicts()" style="background:#fefce8;color:#854d0e;border-color:#fde047;">⚠️ Check Conflicts</button>
       </div>
     </div>
-  </div>
+    </div><!-- end Office card -->
 
-</div>
+  </div><!-- end tab-setup -->
+
+</div><!-- end page -->
 
 <!-- Calendar Modal -->
 <div class="modal-overlay" id="cal-modal" onclick="if(event.target===this)closeModal()">
@@ -593,6 +601,15 @@
 <script>
 const REPO     = "jsibbickrbt/RBT-On-Call-Dev";
 const BASE_URL = "https://jsibbickrbt.github.io/RBT-On-Call-Dev";
+
+function switchTab(tab) {
+  document.getElementById("tab-calendar").style.display = tab === "calendar" ? "block" : "none";
+  document.getElementById("tab-setup").style.display    = tab === "setup"    ? "block" : "none";
+  document.getElementById("tab-cal-link").classList.toggle("active",   tab === "calendar");
+  document.getElementById("tab-setup-link").classList.toggle("active", tab === "setup");
+  document.querySelector(".save-bar").style.display = tab === "setup" ? "flex" : "none";
+  localStorage.setItem("rbt_active_tab", tab);
+}
 
 let config = {};
 
@@ -1795,6 +1812,7 @@ async function initCalendar() {
 handleOAuthCallback();
 loadConfigAndCheck();
 checkVersion();
+switchTab(localStorage.getItem("rbt_active_tab") || "calendar");
 </script>
 </body>
 </html>
