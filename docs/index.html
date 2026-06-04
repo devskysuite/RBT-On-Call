@@ -1358,8 +1358,8 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
   const n = activeEmps.length;
   if (!n) return schedule;
 
-  // Determine shift: if rotDays >= 14 and employees >= 14, shift start day each full cycle
-  const shouldShift = rotDays >= 14 || n >= 14;
+  // Only shift for multi-day blocks — 1-day rotations never skip days
+  const shouldShift = rotDays >= 7 && n >= 14;
   const shiftDays   = shouldShift ? 1 : 0;
 
   let d = startDate;
@@ -1506,7 +1506,7 @@ async function rebalanceRotation() {
   const btn       = document.getElementById("rot-rebalance-btn");
 
   // Determine shift threshold
-  const shouldShift = rotDays >= 14 || n >= 14 || n === 7;
+  const shouldShift = rotDays >= 7 && n >= 14;
 
   btn.disabled = true;
   statusEl.textContent = "Finding events to rebalance...";
