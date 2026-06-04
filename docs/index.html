@@ -425,6 +425,10 @@
     <p style="font-size:0.85rem;color:#6b7280;margin-bottom:16px;">
       Fills empty on-call days in Outlook for the next 7 months. Skips days already assigned. Clears nothing past Jan 31, 2028.
     </p>
+    <div style="margin-bottom:14px;">
+      <button class="btn-sm blue" id="outlook-connect-btn" onclick="connectOutlook()">&#x1F517; Connect to Outlook</button>
+      <span id="outlook-status" style="font-size:0.8rem;color:#6b7280;margin-left:10px;"></span>
+    </div>
     <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;">
       <div class="field">
         <label class="field-label">Start Date</label>
@@ -1120,9 +1124,13 @@ let graphAccessToken = null;
 function initRotationPlanner() {
   const activeEmps = (config.employees || []).filter(e => e.active !== false);
   document.getElementById("rot-emp-count").textContent = activeEmps.length;
-  // Default start = tomorrow
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
   document.getElementById("rot-start").value = tomorrow.toISOString().slice(0,10);
+  // Show connected status if refresh token cached
+  if (localStorage.getItem("rbt_ms_rt_plain")) {
+    document.getElementById("outlook-status").textContent = "✅ Connected to Outlook";
+    document.getElementById("outlook-connect-btn").textContent = "✅ Outlook Connected";
+  }
 }
 
 function addDays(dateStr, n) {
@@ -1154,51 +1162,99 @@ async function getExistingOncallDates(token, startDate, endDate) {
   return occupied;
 }
 
-async function getGraphToken() {
-  if (graphAccessToken) return graphAccessToken;
+// PKCE helpers
+async function generatePKCE() {
+  const verifier = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))))
+    .replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"");
+  return { verifier, challenge };
+}
 
-  // Use in-memory credentials (auto-decrypted on admin login)
-  let rt  = window._msRefreshToken;
-  let sec = window._msClientSecret;
+const MS_REDIRECT = "https://jsibbickrbt.github.io/RBT-On-Call/";
 
-  // First-time setup — ask once, then save encrypted
-  if (!rt || !sec) {
-    const pw = document.getElementById("admin-password").value ||
-               prompt("Enter your admin password to save Outlook credentials:");
-    if (!pw) return null;
-    rt  = prompt("Enter your Microsoft Refresh Token:");
-    if (!rt) return null;
-    sec = prompt("Enter your Azure Client Secret:");
-    if (!sec) return null;
-    await saveMsCredentials(pw, rt.trim(), sec.trim());
-  }
+async function connectOutlook() {
+  const { verifier, challenge } = await generatePKCE();
+  sessionStorage.setItem("pkce_verifier", verifier);
+  const url = `https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/authorize`
+    + `?client_id=${MS_CLIENT_ID}`
+    + `&response_type=code`
+    + `&redirect_uri=${encodeURIComponent(MS_REDIRECT)}`
+    + `&scope=${encodeURIComponent("Calendars.ReadWrite offline_access")}`
+    + `&response_mode=query`
+    + `&code_challenge=${challenge}`
+    + `&code_challenge_method=S256`;
+  window.location.href = url;
+}
+
+async function handleOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code    = params.get("code");
+  const error   = params.get("error");
+  if (error) { console.error("OAuth error:", params.get("error_description")); return; }
+  if (!code) return;
+
+  // Clear code from URL
+  window.history.replaceState({}, "", window.location.pathname);
+
+  const verifier = sessionStorage.getItem("pkce_verifier");
+  if (!verifier) { alert("PKCE verifier missing — please try connecting again."); return; }
+  sessionStorage.removeItem("pkce_verifier");
 
   const body = new URLSearchParams({
     client_id:     MS_CLIENT_ID,
-    client_secret: sec,
-    refresh_token: rt,
-    grant_type:    "refresh_token",
+    code,
+    redirect_uri:  MS_REDIRECT,
+    grant_type:    "authorization_code",
+    code_verifier: verifier,
     scope:         "Calendars.ReadWrite offline_access"
   });
   const r = await fetch(`https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token`, {
     method: "POST", body
   });
   const data = await r.json();
-  if (data.error) {
-    alert("Outlook auth error: " + data.error_description);
-    window._msRefreshToken = null; window._msClientSecret = null;
-    return null;
-  }
-  // Save updated refresh token encrypted
-  if (data.refresh_token) {
-    const pw = await deriveKey("rbt-oncall-auto"); // use a fixed key for RT updates
-    window._msRefreshToken = data.refresh_token;
-    const encRt = await encryptToken("rbt-oncall-auto", data.refresh_token);
-    // We can't re-encrypt with original password here, so just update in memory
-    // User's next full login will re-save properly
-  }
+  if (data.error) { alert("Outlook auth error: " + data.error_description); return; }
+
   graphAccessToken = data.access_token;
-  return graphAccessToken;
+  if (data.refresh_token) {
+    localStorage.setItem("rbt_ms_rt_plain", data.refresh_token);
+    window._msRefreshToken = data.refresh_token;
+  }
+  document.getElementById("outlook-status").textContent = "✅ Connected to Outlook";
+  document.getElementById("outlook-connect-btn").textContent = "✅ Outlook Connected";
+}
+
+async function getGraphToken() {
+  if (graphAccessToken) return graphAccessToken;
+
+  // Try refresh token
+  const rt = window._msRefreshToken || localStorage.getItem("rbt_ms_rt_plain");
+  if (rt) {
+    const body = new URLSearchParams({
+      client_id:     MS_CLIENT_ID,
+      refresh_token: rt,
+      grant_type:    "refresh_token",
+      scope:         "Calendars.ReadWrite offline_access"
+    });
+    const r = await fetch(`https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token`, {
+      method: "POST", body
+    });
+    const data = await r.json();
+    if (!data.error) {
+      graphAccessToken = data.access_token;
+      if (data.refresh_token) {
+        localStorage.setItem("rbt_ms_rt_plain", data.refresh_token);
+        window._msRefreshToken = data.refresh_token;
+      }
+      return graphAccessToken;
+    }
+    localStorage.removeItem("rbt_ms_rt_plain");
+  }
+
+  // Need fresh login
+  alert("Please click 'Connect to Outlook' first.");
+  return null;
 }
 
 // Generate rotation schedule
@@ -1333,6 +1389,7 @@ async function pushRotation() {
   }
 }
 
+handleOAuthCallback();
 loadConfigAndCheck();
 </script>
 </body>
