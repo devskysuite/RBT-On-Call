@@ -1397,6 +1397,38 @@ function hideProgress(wrapId) {
   if (wrap) setTimeout(() => wrap.classList.remove("show"), 2000);
 }
 
+async function checkDuplicateOncall(token, statusEl) {
+  if (!token) return;
+  const today = new Date().toISOString().slice(0,10);
+  const end = new Date(); end.setMonth(end.getMonth()+7);
+  let url = `https://graph.microsoft.com/v1.0/me/calendars/${GRAPH_CAL_ID}/calendarView`
+          + `?startDateTime=${today}T00:00:00&endDateTime=${end.toISOString().slice(0,10)}T00:00:00`
+          + `&$top=999&$select=subject,start`;
+  const evs = [];
+  while (url) {
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    (d.value || []).forEach(e => evs.push(e));
+    url = d["@odata.nextLink"] || null;
+  }
+  const dateMap = {};
+  evs.forEach(ev => {
+    const s = (ev.subject || "").toLowerCase();
+    if (!(s.includes("on call") || s.includes("oncall")) || s.includes("vacation")) return;
+    const dt = ev.start?.date || ev.start?.dateTime?.slice(0,10);
+    if (!dt) return;
+    if (!dateMap[dt]) dateMap[dt] = [];
+    dateMap[dt].push(ev.subject);
+  });
+  const dupes = Object.entries(dateMap).filter(([,names]) => names.length > 1);
+  if (dupes.length > 0) {
+    const list = dupes.slice(0,10).map(([d, names]) => `${d}: ${names.join(" & ")}`).join("\n");
+    if (statusEl) statusEl.textContent = `⚠️ ${dupes.length} day(s) with multiple people on call!`;
+    alert(`⚠️ ${dupes.length} day(s) have multiple people on call:\n\n${list}${dupes.length>10?"\n...and more":""}\n\nPlease fix the calendar.`);
+  }
+  return dupes;
+}
+
 // Generate rotation schedule
 function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedDates) {
   const CLEAR_AFTER = "2028-01-31";
@@ -1545,6 +1577,7 @@ async function pushRotation() {
   const pushMsg = `Done! ${pushed} of ${schedule.length} events pushed to Outlook${failed ? `, ${failed} failed` : ""}.`;
   document.getElementById("rot-status").textContent = pushMsg;
   alert(pushMsg);
+  await checkDuplicateOncall(token, document.getElementById("rot-status"));
 
   if (pushed > 0) {
     // Trigger calendar refresh
@@ -1703,6 +1736,7 @@ async function rebalanceRotation() {
   const msg = `Rebalance complete!\n• ${deleted} removed (inactive employees)\n• ${pushed} new days assigned${failed ? `\n• ${failed} failed` : ""}\n• ${n} active employees${shouldShift ? " (day-shift applied)" : ""}`;
   statusEl.textContent = msg.replace(/\n/g, "  ");
   alert(msg);
+  await checkDuplicateOncall(token, statusEl);
 
   const ghToken = document.getElementById("gh-token").value;
   if (ghToken) refreshCalendars();
