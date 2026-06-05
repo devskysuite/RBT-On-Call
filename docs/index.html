@@ -527,6 +527,10 @@
         <label class="field-label">Rebalance from date</label>
         <input type="date" id="rebalance-from" style="max-width:160px;" />
       </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-top:20px;">
+        <input type="checkbox" id="rebalance-shuffle" style="width:16px;height:16px;cursor:pointer;" />
+        <label for="rebalance-shuffle" style="font-size:0.82rem;color:#374151;cursor:pointer;">Shuffle order</label>
+      </div>
       <button class="btn-sm orange" id="rot-rebalance-btn" onclick="rebalanceRotation()">&#x2696; Rebalance from Date</button>
       <span style="font-size:0.78rem;color:#6b7280;">Clears all events from selected date forward and rebuilds with active employees</span>
     </div>
@@ -1622,10 +1626,21 @@ async function rebalanceRotation() {
   const token = await getGraphToken();
   if (!token) return;
 
-  const activeEmps = (config.employees || []).filter(e => e.active !== false);
-  const rotDays    = parseInt(document.getElementById("rot-days").value) || 1;
-  const n          = activeEmps.length;
-  const fromDate   = document.getElementById("rebalance-from").value;
+  let activeEmps = (config.employees || []).filter(e => e.active !== false);
+  const rotDays  = parseInt(document.getElementById("rot-days").value) || 1;
+  const shuffle  = document.getElementById("rebalance-shuffle").checked;
+  const fromDate = document.getElementById("rebalance-from").value;
+
+  // Shuffle order if requested (Fisher-Yates)
+  if (shuffle) {
+    activeEmps = [...activeEmps];
+    for (let i = activeEmps.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [activeEmps[i], activeEmps[j]] = [activeEmps[j], activeEmps[i]];
+    }
+  }
+
+  const n = activeEmps.length;
 
   if (!n)        { alert("No active employees."); return; }
   if (!fromDate) { alert("Please select a rebalance start date."); return; }
@@ -1634,7 +1649,8 @@ async function rebalanceRotation() {
   const statusEl = document.getElementById("rot-status");
   const btn      = document.getElementById("rot-rebalance-btn");
 
-  if (!confirm(`This will:\n• Delete ALL on-call events from ${fromDate} onwards\n• Rebuild the schedule for ${n} active employees through ${endDate}\n\nContinue?`)) return;
+  const orderLine = shuffle ? `• New shuffled order: ${activeEmps.map(e=>e.name).join(", ")}\n` : "";
+  if (!confirm(`This will:\n• Delete ALL on-call events from ${fromDate} onwards\n• Rebuild the schedule for ${n} active employees through ${endDate}\n${orderLine}\nContinue?`)) return;
 
   btn.disabled = true;
   statusEl.textContent = "Backing up before rebalance...";
