@@ -1916,7 +1916,10 @@ async function restoreCalendar() {
                  : await (await fetch(`${BASE_URL}/calendar_backup.json?cb=${Date.now()}`)).json();
   } catch(e) { statusEl.textContent = "❌ Could not load backup."; return; }
 
-  if (!confirm(`Restore from backup:\n${new Date(backup.backed_up).toLocaleString()}\n${backup.event_count} events\n\nMissing events will be recreated. Existing events are NOT deleted.`)) return;
+  if (!confirm(`Restore from backup:\n${new Date(backup.backed_up).toLocaleString()}\n${backup.event_count} events\n\nThe current calendar will be backed up first, then missing events recreated.`)) return;
+
+  statusEl.textContent = "Backing up current calendar before restore...";
+  await backupCalendar(true);
 
   const btn = document.getElementById("restore-btn");
   btn.disabled = true;
