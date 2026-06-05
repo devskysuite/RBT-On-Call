@@ -860,16 +860,24 @@ function dirAddPerson() {
   }
   // Offer to add to on-call rotation
   const firstName = name.split(" ")[0];
-  if (confirm(`Add ${firstName} to the on-call rotation?`)) {
+  const addToRotation = confirm(`Add ${firstName} to the on-call rotation?`);
+  if (addToRotation) {
     if (!config.employees) config.employees = [];
     if (!config.employees.some(e => e.name.toLowerCase() === firstName.toLowerCase())) {
       config.employees.push({ name: firstName, phone, active: true });
     }
-    document.getElementById("dir-save-notice").style.display = "block";
   }
   dirHideAddForm();
   renderDirectory(directoryData, document.getElementById("dir-search").value);
-  saveDirectory();
+
+  const notice = document.getElementById("dir-add-status");
+  notice.textContent = "Saving...";
+  // Save both directory and config (if added to rotation)
+  Promise.all([saveDirectory(), addToRotation ? saveConfigSilent() : Promise.resolve(true)])
+    .then(([, ok]) => {
+      notice.textContent = ok ? "✅ Saved!" : "❌ Config save failed — click Save Changes";
+      setTimeout(() => notice.textContent = "", 3000);
+    });
 }
 
 function dirDeletePerson(fullName) {
