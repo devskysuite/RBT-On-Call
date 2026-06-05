@@ -1456,12 +1456,11 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
   const n = activeEmps.length;
   if (!n) return schedule;
 
-  // For 7+ day blocks: after each full cycle, shift the START DATE by 1 day
-  // so each person's block drifts through different weekdays over time.
-  // For 1-day blocks with n%7==0: shift who starts each cycle (no date gap).
-  const cycleLen      = n * rotDays;
-  const needDateShift = rotDays >= 7;       // shift start date by 1 day each cycle
-  const needIdxShift  = cycleLen % 7 === 0; // shift starting person each cycle
+  // When active employee count is a multiple of 7 (7, 14, 21, 28...),
+  // the cycle aligns perfectly with full weeks so everyone always lands
+  // on the same weekday. Fix: shift who STARTS each cycle by 1 position
+  // so weekdays rotate — no gaps, no back-to-backs.
+  const needShift = n % 7 === 0;
 
   let d = startDate;
   let cycleStartIdx = 0;
@@ -1481,11 +1480,10 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
     posInCycle++;
     d = addDays(d, rotDays);
 
-    // After one full cycle through all employees
+    // After one full cycle, shift the starting person if count is multiple of 7
     if (posInCycle >= n) {
       posInCycle = 0;
-      if (needIdxShift) cycleStartIdx = (cycleStartIdx + 1) % n;
-      if (needDateShift) d = addDays(d, 1); // shift next cycle start by 1 day
+      if (needShift) cycleStartIdx = (cycleStartIdx + 1) % n;
     }
   }
   return schedule;
