@@ -2068,6 +2068,9 @@ function dismissUpdate() {
   document.getElementById("update-banner").style.display = "none";
 }
 
+// Poll every 5 minutes — shows banner automatically without needing a tab switch
+setInterval(checkVersion, 5 * 60 * 1000);
+
 // ── Month Calendar ────────────────────────────────────────────────────────────
 let mcalYear  = new Date().getFullYear();
 let mcalMonth = new Date().getMonth(); // 0-based
