@@ -791,10 +791,9 @@ function renderEmployees() {
       <tr class="ics-row" id="ics-row-${i}">
         <td colspan="4">
           <div class="ics-box">
-            <label>📅 ICS:</label>
-            <input type="text" id="ics-url-${i}" value="${icsUrl}" readonly onclick="this.select()" />
-            <button class="btn-sm gray"   onclick="copyIcs(${i})" id="copy-btn-${i}">Copy</button>
-            <a class="btn-sm blue" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">📲 Subscribe</a>
+            <input type="hidden" id="ics-url-${i}" value="${icsUrl}" />
+            <button class="btn-sm gray"   onclick="copyIcs(${i})" id="copy-btn-${i}">&#x1F4CB; Copy ICS</button>
+            <a class="btn-sm blue" id="ics-open-${i}" href="${webcal}" style="text-decoration:none;">&#x1F4F2; Subscribe</a>
             <button class="btn-sm orange" id="test-btn-${i}" onclick="sendTestText(${i}, '${emp.name}')">💬 Test</button>
             <button class="btn-sm green"  id="cal-btn-${i}"  onclick="sendCalendarLink(${i}, '${emp.name}')">📅 Send Link</button>
             <button class="btn-sm blue"   onclick="viewCalendar('${emp.name}')">📆 View</button>
