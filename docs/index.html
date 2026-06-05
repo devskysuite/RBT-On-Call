@@ -1618,7 +1618,7 @@ async function pushRotation() {
   await checkDuplicateOncall(token, document.getElementById("rot-status"));
 
   if (pushed > 0) {
-    // Trigger calendar refresh
+    mcalLoaded = false; initCalendar();
     const ghToken = document.getElementById("gh-token").value;
     if (ghToken) refreshCalendars();
   }
@@ -1763,6 +1763,7 @@ async function rebalanceRotation() {
   alert(msg);
   await checkDuplicateOncall(token, statusEl);
 
+  mcalLoaded = false; initCalendar();
   const ghToken = document.getElementById("gh-token").value;
   if (ghToken) refreshCalendars();
 }
@@ -2069,6 +2070,7 @@ async function clearOncallEvents() {
   alert(msg);
   btn.disabled = false;
 
+  if (deleted > 0) { mcalLoaded = false; initCalendar(); }
   const ghToken = document.getElementById("gh-token").value;
   if (ghToken && deleted > 0) refreshCalendars();
 }
