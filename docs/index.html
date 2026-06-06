@@ -1880,6 +1880,47 @@ function buildRotationSchedule(startDate, endDate, rotDays, employees, occupiedD
       if (needShift) cycleStartIdx = (cycleStartIdx + 1) % n;
     }
   }
+
+  // Fair holiday distribution — ensure no one has more than 1 stat holiday
+  // Get all stat holidays covered by this schedule
+  const years = [...new Set(schedule.map(s => parseInt(s.date.slice(0,4))))];
+  const allHolidays = {};
+  years.forEach(y => Object.assign(allHolidays, getCanadianHolidays(y)));
+
+  // Find holiday slots in this schedule (unoccupied only — we're building these)
+  const holidaySlots = schedule.filter(s => !s.occupied && allHolidays[s.date.replace(/-/g,"")]);
+
+  if (holidaySlots.length > 0) {
+    // Count holidays per person
+    const holCount = {};
+    holidaySlots.forEach(s => { holCount[s.person] = (holCount[s.person] || 0) + 1; });
+
+    // Keep redistributing until no one has 2+ holidays
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const slot of holidaySlots) {
+        if ((holCount[slot.person] || 0) < 2) continue;
+        // This person has 2+ holidays — find a non-holiday day owned by someone with 0 holidays
+        const swap = schedule.find(s =>
+          !s.occupied &&
+          !allHolidays[s.date.replace(/-/g,"")] &&
+          (holCount[s.person] || 0) === 0
+        );
+        if (swap) {
+          holCount[slot.person]--;
+          holCount[swap.person] = (holCount[swap.person] || 0) + 1;
+          // Swap their assignments
+          const tmp = slot.person;
+          slot.person = swap.person;
+          swap.person = tmp;
+          changed = true;
+          break;
+        }
+      }
+    }
+  }
+
   return schedule;
 }
 
