@@ -420,6 +420,10 @@
         <input type="password" id="admin-token-input" placeholder="GitHub Token (ghp_...)" />
       </div>
       <div class="admin-error" id="admin-error"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <input type="checkbox" id="admin-remember" style="width:16px;height:16px;cursor:pointer;" />
+        <label for="admin-remember" style="font-size:0.82rem;color:#374151;cursor:pointer;">Remember me on this device</label>
+      </div>
       <div class="admin-modal-btns">
         <button class="btn-sm gray" onclick="closeAdminModal()">Cancel</button>
         <button class="btn-sm green" onclick="submitAdminLogin()">Login</button>
@@ -1203,6 +1207,9 @@ async function submitAdminLogin() {
       const token = await decryptToken(pw, stored);
       document.getElementById("gh-token").value = token;
       sessionStorage.setItem("rbt_session_token", token);
+      if (document.getElementById("admin-remember")?.checked) {
+        localStorage.setItem("rbt_remember_token", token);
+      }
       // Auto-decrypt MS credentials if stored
       const encRt = localStorage.getItem("rbt_enc_ms_rt");
       const encSec = localStorage.getItem("rbt_enc_ms_sec");
@@ -1234,9 +1241,10 @@ function setAdminLoggedIn() {
 }
 
 function restoreAdminSession() {
-  const saved = sessionStorage.getItem("rbt_session_token");
+  const saved = sessionStorage.getItem("rbt_session_token") || localStorage.getItem("rbt_remember_token");
   if (saved) {
     document.getElementById("gh-token").value = saved;
+    sessionStorage.setItem("rbt_session_token", saved);
     setAdminLoggedIn();
     setTimeout(loadBackupInfo, 500);
   }
@@ -1255,6 +1263,7 @@ function logoutAdmin() {
   if (!confirm("Log out of admin?")) return;
   document.getElementById("gh-token").value = "";
   sessionStorage.removeItem("rbt_session_token");
+  localStorage.removeItem("rbt_remember_token");
   document.getElementById("admin-login-btn").textContent = "🔒 Admin Login";
   document.getElementById("admin-login-btn").classList.remove("logged-in");
 }
