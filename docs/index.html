@@ -2882,6 +2882,38 @@ async function renderHolidayPanel() {
     }
   }
 
+  // Build a projected schedule with fairness applied for unscheduled holidays
+  const projectedHolidays = {};
+  if (rotOrder && token) {
+    const activeEmps = (config.employees || []).filter(e => e.active !== false);
+    const existingHolCounts = await getExistingHolidayCounts(token);
+
+    // Simulate: which unscheduled holidays would each person get?
+    const upcomingHolidayDates = Object.keys(holidays)
+      .filter(d8 => d8 >= todayStr && !yearEvents[d8])
+      .sort();
+
+    // Seed holCount with past assignments + already-scheduled future holidays
+    const holCount = Object.assign({}, existingHolCounts);
+    Object.entries(yearEvents).forEach(([d8, person]) => {
+      if (holidays[d8]) holCount[person] = (holCount[person] || 0) + 1;
+    });
+
+    for (const d8 of upcomingHolidayDates) {
+      const isoDate = `${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`;
+      let person = projectOncallForDate(isoDate, rotOrder);
+      // Apply fairness: if this person already has a holiday, find someone who doesn't
+      if (person && (holCount[person] || 0) >= 1) {
+        const replacement = activeEmps.find(e => (holCount[e.name] || 0) === 0 && e.name !== person);
+        if (replacement) person = replacement.name;
+      }
+      if (person) {
+        projectedHolidays[d8] = person;
+        holCount[person] = (holCount[person] || 0) + 1;
+      }
+    }
+  }
+
   const rows = Object.entries(holidays)
     .filter(([d8]) => d8 >= todayStr)
     .sort(([a],[b]) => a.localeCompare(b))
@@ -2892,12 +2924,8 @@ async function renderHolidayPanel() {
 
       if (scheduled) {
         badge = `<span class="mcal-pill oncall" style="display:inline-block;">${scheduled}</span>`;
-      } else if (rotOrder) {
-        // Not scheduled yet — project from rotation order
-        const projected = projectOncallForDate(isoDate, rotOrder);
-        badge = projected
-          ? `<span style="font-size:0.75rem;color:#6b7280;font-style:italic;">&#x1F4CA; ${projected} (projected)</span>`
-          : `<span style="font-size:0.75rem;color:#d1d5db;">—</span>`;
+      } else if (projectedHolidays[d8]) {
+        badge = `<span style="font-size:0.78rem;color:#2563eb;font-weight:600;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 10px;border-radius:99px;">&#x1F4CA; ${projectedHolidays[d8]}</span>`;
       } else {
         badge = `<span style="font-size:0.75rem;color:#d1d5db;">—</span>`;
       }
